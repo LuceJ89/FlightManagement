@@ -20,11 +20,14 @@ def add_new_flight():
     
     choice = input("\nSelect an option (1-2): ").strip()
     
-    if choice == '2':
-        return
-    elif choice != '1':
-        print("Invalid selection.")
-        return
+    match choice:
+        case '2':
+            return
+        case '1':
+            pass
+        case _:
+            print("Invalid selection.")
+            return
     
     conn = get_connection()
     
@@ -127,60 +130,61 @@ def view_flights_by_criteria():
     
     choice = input("\nSelect filter criteria (1-5): ").strip()
     
-    if choice == '1':
-        # Show available destinations
-        print("\n--- Available Destinations ---")
-        cursor = conn.execute("SELECT DISTINCT city FROM Destinations ORDER BY city")
-        cities = [row[0] for row in cursor.fetchall()]
-        print(", ".join(cities))
-        
-        city = input("\nEnter Destination City: ")
-        query = """SELECT f.flight_num, d.city, f.status, f.departure_date 
-                   FROM Flights f 
-                   LEFT JOIN Destinations d ON f.dest_id = d.dest_id 
-                   WHERE d.city LIKE ?"""
-        cursor = conn.execute(query, (f'%{city}%',))
-        
-    elif choice == '2':
-        # Show available statuses
-        print("\n--- Available Statuses ---")
-        cursor = conn.execute("SELECT DISTINCT status FROM Flights ORDER BY status")
-        statuses = [row[0] for row in cursor.fetchall()]
-        print(", ".join(statuses))
-        
-        status = input("\nEnter Status: ")
-        query = """SELECT f.flight_num, d.city, f.status, f.departure_date 
-                   FROM Flights f 
-                   LEFT JOIN Destinations d ON f.dest_id = d.dest_id 
-                   WHERE f.status LIKE ?"""
-        cursor = conn.execute(query, (f'%{status}%',))
-        
-    elif choice == '3':
-        # Show available dates
-        print("\n--- Available Departure Dates ---")
-        cursor = conn.execute("SELECT DISTINCT departure_date FROM Flights ORDER BY departure_date")
-        dates = [row[0] for row in cursor.fetchall()]
-        print(", ".join(dates))
-        
-        dep_date = input("\nEnter Departure Date (YYYY-MM-DD): ")
-        query = """SELECT f.flight_num, d.city, f.status, f.departure_date 
-                   FROM Flights f 
-                   LEFT JOIN Destinations d ON f.dest_id = d.dest_id 
-                   WHERE f.departure_date LIKE ?"""
-        cursor = conn.execute(query, (f'%{dep_date}%',))
-        
-    elif choice == '4':
-        query = """SELECT f.flight_num, d.city, f.status, f.departure_date 
-                   FROM Flights f 
-                   LEFT JOIN Destinations d ON f.dest_id = d.dest_id"""
-        cursor = conn.execute(query)
-    elif choice == '5':
-        conn.close()
-        return
-    else:
-        print("Invalid selection.")
-        conn.close()
-        return
+    match choice:
+        case '1':
+            # Show available destinations
+            print("\n--- Available Destinations ---")
+            cursor = conn.execute("SELECT DISTINCT city FROM Destinations ORDER BY city")
+            cities = [row[0] for row in cursor.fetchall()]
+            print(", ".join(cities))
+            
+            city = input("\nEnter Destination City: ")
+            query = """SELECT f.flight_num, d.city, f.status, f.departure_date 
+                       FROM Flights f 
+                       LEFT JOIN Destinations d ON f.dest_id = d.dest_id 
+                       WHERE d.city LIKE ?"""
+            cursor = conn.execute(query, (f'%{city}%',))
+            
+        case '2':
+            # Show available statuses
+            print("\n--- Available Statuses ---")
+            cursor = conn.execute("SELECT DISTINCT status FROM Flights ORDER BY status")
+            statuses = [row[0] for row in cursor.fetchall()]
+            print(", ".join(statuses))
+            
+            status = input("\nEnter Status: ")
+            query = """SELECT f.flight_num, d.city, f.status, f.departure_date 
+                       FROM Flights f 
+                       LEFT JOIN Destinations d ON f.dest_id = d.dest_id 
+                       WHERE f.status LIKE ?"""
+            cursor = conn.execute(query, (f'%{status}%',))
+            
+        case '3':
+            # Show available dates
+            print("\n--- Available Departure Dates ---")
+            cursor = conn.execute("SELECT DISTINCT departure_date FROM Flights ORDER BY departure_date")
+            dates = [row[0] for row in cursor.fetchall()]
+            print(", ".join(dates))
+            
+            dep_date = input("\nEnter Departure Date (YYYY-MM-DD): ")
+            query = """SELECT f.flight_num, d.city, f.status, f.departure_date 
+                       FROM Flights f 
+                       LEFT JOIN Destinations d ON f.dest_id = d.dest_id 
+                       WHERE f.departure_date LIKE ?"""
+            cursor = conn.execute(query, (f'%{dep_date}%',))
+            
+        case '4':
+            query = """SELECT f.flight_num, d.city, f.status, f.departure_date 
+                       FROM Flights f 
+                       LEFT JOIN Destinations d ON f.dest_id = d.dest_id"""
+            cursor = conn.execute(query)
+        case '5':
+            conn.close()
+            return
+        case _:
+            print("Invalid selection.")
+            conn.close()
+            return
     
     results = cursor.fetchall()
     
@@ -208,11 +212,14 @@ def update_flight_information():
     
     choice = input("\nSelect an option (1-2): ").strip()
     
-    if choice == '2':
-        return
-    elif choice != '1':
-        print("Invalid selection.")
-        return
+    match choice:
+        case '2':
+            return
+        case '1':
+            pass
+        case _:
+            print("Invalid selection.")
+            return
     
     conn = get_connection()
     
@@ -367,11 +374,14 @@ def assign_pilot_to_flight():
     
     choice = input("\nSelect an option (1-2): ").strip()
     
-    if choice == '2':
-        return
-    elif choice != '1':
-        print("Invalid selection.")
-        return
+    match choice:
+        case '2':
+            return
+        case '1':
+            pass
+        case _:
+            print("Invalid selection.")
+            return
     
     conn = get_connection()
     
@@ -472,88 +482,90 @@ def manage_destination_info():
         
         choice = input("\nSelect an option (1-5): ").strip()
         
-        if choice == '1':
-            # View all destinations with flight counts
-            cursor = conn.execute("""
-                SELECT d.dest_id, d.airport_code, d.city, COUNT(f.flight_id) as flight_count
-                FROM Destinations d
-                LEFT JOIN Flights f ON d.dest_id = f.dest_id
-                GROUP BY d.dest_id, d.airport_code, d.city
-                ORDER BY d.city
-            """)
-            destinations = cursor.fetchall()
-            print(f"\n{'ID':<5} | {'Code':<8} | {'City':<20} | {'Flights'}")
-            print("-" * 50)
-            for row in destinations:
-                print(f"{row[0]:<5} | {row[1]:<8} | {row[2]:<20} | {row[3]}")
-        
-        elif choice == '2':
-            # Add new destination
-            add_new_destination(conn)
-        
-        elif choice == '3':
-            # Update destination information
-            cursor = conn.execute("SELECT dest_id, airport_code, city FROM Destinations ORDER BY city")
-            print("\n--- Available Destinations ---")
-            destinations = cursor.fetchall()
-            for row in destinations:
-                print(f"ID: {row[0]} | Code: {row[1]} | City: {row[2]}")
+        match choice:
+            case '1':
+                # View all destinations with flight counts
+                cursor = conn.execute("""
+                    SELECT d.dest_id, d.airport_code, d.city, COUNT(f.flight_id) as flight_count
+                    FROM Destinations d
+                    LEFT JOIN Flights f ON d.dest_id = f.dest_id
+                    GROUP BY d.dest_id, d.airport_code, d.city
+                    ORDER BY d.city
+                """)
+                destinations = cursor.fetchall()
+                print(f"\n{'ID':<5} | {'Code':<8} | {'City':<20} | {'Flights'}")
+                print("-" * 50)
+                for row in destinations:
+                    print(f"{row[0]:<5} | {row[1]:<8} | {row[2]:<20} | {row[3]}")
             
-            try:
-                d_id = int(input("\nEnter Destination ID to update: "))
-            except ValueError:
-                print("Invalid ID. Please enter a number.")
-                continue
+            case '2':
+                # Add new destination
+                add_new_destination(conn)
             
-            print("\nWhat would you like to update?")
-            print("1. City Name")
-            print("2. Airport Code")
-            update_choice = input("Select (1-2): ")
-            
-            if update_choice == '1':
-                new_city = input("Enter new city name: ")
-                conn.execute("UPDATE Destinations SET city = ? WHERE dest_id = ?", (new_city, d_id))
-                conn.commit()
-                print(f"[Success] Destination city updated to: {new_city}")
-            elif update_choice == '2':
-                new_code = input("Enter new airport code: ")
-                conn.execute("UPDATE Destinations SET airport_code = ? WHERE dest_id = ?", (new_code, d_id))
-                conn.commit()
-                print(f"[Success] Airport code updated to: {new_code}")
-        
-        elif choice == '4':
-            # Delete a destination
-            cursor = conn.execute("SELECT dest_id, airport_code, city FROM Destinations ORDER BY city")
-            print("\n--- Available Destinations ---")
-            destinations = cursor.fetchall()
-            for row in destinations:
-                print(f"ID: {row[0]} | Code: {row[1]} | City: {row[2]}")
-            
-            try:
-                d_id = int(input("\nEnter Destination ID to delete: "))
-            except ValueError:
-                print("Invalid ID. Please enter a number.")
-                continue
-            
-            # Check if destination has flights
-            cursor = conn.execute("SELECT COUNT(*) FROM Flights WHERE dest_id = ?", (d_id,))
-            count = cursor.fetchone()[0]
-            
-            if count > 0:
-                print(f"\n[Warning] This destination has {count} flight(s) assigned.")
-                confirm = input("Delete anyway? (yes/no): ")
-                if confirm.lower() != 'yes':
-                    print("Deletion cancelled.")
+            case '3':
+                # Update destination information
+                cursor = conn.execute("SELECT dest_id, airport_code, city FROM Destinations ORDER BY city")
+                print("\n--- Available Destinations ---")
+                destinations = cursor.fetchall()
+                for row in destinations:
+                    print(f"ID: {row[0]} | Code: {row[1]} | City: {row[2]}")
+                
+                try:
+                    d_id = int(input("\nEnter Destination ID to update: "))
+                except ValueError:
+                    print("Invalid ID. Please enter a number.")
                     continue
+                
+                print("\nWhat would you like to update?")
+                print("1. City Name")
+                print("2. Airport Code")
+                update_choice = input("Select (1-2): ")
+                
+                match update_choice:
+                    case '1':
+                        new_city = input("Enter new city name: ")
+                        conn.execute("UPDATE Destinations SET city = ? WHERE dest_id = ?", (new_city, d_id))
+                        conn.commit()
+                        print(f"[Success] Destination city updated to: {new_city}")
+                    case '2':
+                        new_code = input("Enter new airport code: ")
+                        conn.execute("UPDATE Destinations SET airport_code = ? WHERE dest_id = ?", (new_code, d_id))
+                        conn.commit()
+                        print(f"[Success] Airport code updated to: {new_code}")
             
-            conn.execute("DELETE FROM Destinations WHERE dest_id = ?", (d_id,))
-            conn.commit()
-            print("[Success] Destination deleted.")
-        
-        elif choice == '5':
-            break
-        else:
-            print("Invalid selection. Please try again.")
+            case '4':
+                # Delete a destination
+                cursor = conn.execute("SELECT dest_id, airport_code, city FROM Destinations ORDER BY city")
+                print("\n--- Available Destinations ---")
+                destinations = cursor.fetchall()
+                for row in destinations:
+                    print(f"ID: {row[0]} | Code: {row[1]} | City: {row[2]}")
+                
+                try:
+                    d_id = int(input("\nEnter Destination ID to delete: "))
+                except ValueError:
+                    print("Invalid ID. Please enter a number.")
+                    continue
+                
+                # Check if destination has flights
+                cursor = conn.execute("SELECT COUNT(*) FROM Flights WHERE dest_id = ?", (d_id,))
+                count = cursor.fetchone()[0]
+                
+                if count > 0:
+                    print(f"\n[Warning] This destination has {count} flight(s) assigned.")
+                    confirm = input("Delete anyway? (yes/no): ")
+                    if confirm.lower() != 'yes':
+                        print("Deletion cancelled.")
+                        continue
+                
+                conn.execute("DELETE FROM Destinations WHERE dest_id = ?", (d_id,))
+                conn.commit()
+                print("[Success] Destination deleted.")
+            
+            case '5':
+                break
+            case _:
+                print("Invalid selection. Please try again.")
     
     conn.close()
 
@@ -578,68 +590,69 @@ def add_new_destination(conn):
         print("2. Create a new flight")
         flight_choice = input("Select (1-2): ")
         
-        if flight_choice == '1':
-            # Show available flights
-            cursor = conn.execute("SELECT flight_id, flight_num, departure_date, pilot_id FROM Flights ORDER BY flight_id")
-            flights = cursor.fetchall()
-            print("\n--- Available Flights ---")
-            for row in flights:
-                print(f"ID: {row[0]} | Flight: {row[1]} | Date: {row[2]} | Pilot ID: {row[3]}")
+        match flight_choice:
+            case '1':
+                # Show available flights
+                cursor = conn.execute("SELECT flight_id, flight_num, departure_date, pilot_id FROM Flights ORDER BY flight_id")
+                flights = cursor.fetchall()
+                print("\n--- Available Flights ---")
+                for row in flights:
+                    print(f"ID: {row[0]} | Flight: {row[1]} | Date: {row[2]} | Pilot ID: {row[3]}")
+                
+                try:
+                    f_id = int(input("\nEnter Flight ID to assign: "))
+                except ValueError:
+                    print("Invalid Flight ID.")
+                    return
+                
+                # Show available pilots
+                cursor = conn.execute("SELECT pilot_id, name FROM Pilots ORDER BY pilot_id")
+                pilots = cursor.fetchall()
+                print("\n--- Available Pilots ---")
+                for row in pilots:
+                    print(f"ID: {row[0]} | Name: {row[1]}")
+                
+                try:
+                    p_id = int(input("\nEnter Pilot ID to assign: "))
+                except ValueError:
+                    print("Invalid Pilot ID.")
+                    return
+                
+                # Update flight with new destination and pilot
+                conn.execute("UPDATE Flights SET dest_id = ?, pilot_id = ? WHERE flight_id = ?", (new_dest_id, p_id, f_id))
+                conn.commit()
+                
+                # Show confirmation
+                cursor = conn.execute("SELECT f.flight_num, p.name FROM Flights f JOIN Pilots p ON f.pilot_id = p.pilot_id WHERE f.flight_id = ?", (f_id,))
+                result = cursor.fetchone()
+                if result:
+                    print(f"\n[Success] Flight {result[0]} assigned to {new_city} with Pilot {result[1]}")
             
-            try:
-                f_id = int(input("\nEnter Flight ID to assign: "))
-            except ValueError:
-                print("Invalid Flight ID.")
-                return
-            
-            # Show available pilots
-            cursor = conn.execute("SELECT pilot_id, name FROM Pilots ORDER BY pilot_id")
-            pilots = cursor.fetchall()
-            print("\n--- Available Pilots ---")
-            for row in pilots:
-                print(f"ID: {row[0]} | Name: {row[1]}")
-            
-            try:
-                p_id = int(input("\nEnter Pilot ID to assign: "))
-            except ValueError:
-                print("Invalid Pilot ID.")
-                return
-            
-            # Update flight with new destination and pilot
-            conn.execute("UPDATE Flights SET dest_id = ?, pilot_id = ? WHERE flight_id = ?", (new_dest_id, p_id, f_id))
-            conn.commit()
-            
-            # Show confirmation
-            cursor = conn.execute("SELECT f.flight_num, p.name FROM Flights f JOIN Pilots p ON f.pilot_id = p.pilot_id WHERE f.flight_id = ?", (f_id,))
-            result = cursor.fetchone()
-            if result:
-                print(f"\n[Success] Flight {result[0]} assigned to {new_city} with Pilot {result[1]}")
-        
-        elif flight_choice == '2':
-            # Create new flight
-            flight_num = input("\nEnter flight number (e.g., FL-200): ")
-            dep_date = input("Enter departure date (YYYY-MM-DD): ")
-            status = input("Enter status (Scheduled/On Time/Delayed/Cancelled): ")
-            
-            # Show available pilots
-            cursor = conn.execute("SELECT pilot_id, name FROM Pilots ORDER BY pilot_id")
-            pilots = cursor.fetchall()
-            print("\n--- Available Pilots ---")
-            for row in pilots:
-                print(f"ID: {row[0]} | Name: {row[1]}")
-            
-            try:
-                p_id = int(input("\nEnter Pilot ID to assign: "))
-            except ValueError:
-                print("Invalid Pilot ID.")
-                return
-            
-            # Insert new flight
-            conn.execute("INSERT INTO Flights (flight_num, departure_date, status, pilot_id, dest_id) VALUES (?, ?, ?, ?, ?)", 
-                        (flight_num, dep_date, status, p_id, new_dest_id))
-            conn.commit()
-            
-            print(f"\n[Success] New flight {flight_num} created and assigned to {new_city}")
+            case '2':
+                # Create new flight
+                flight_num = input("\nEnter flight number (e.g., FL-200): ")
+                dep_date = input("Enter departure date (YYYY-MM-DD): ")
+                status = input("Enter status (Scheduled/On Time/Delayed/Cancelled): ")
+                
+                # Show available pilots
+                cursor = conn.execute("SELECT pilot_id, name FROM Pilots ORDER BY pilot_id")
+                pilots = cursor.fetchall()
+                print("\n--- Available Pilots ---")
+                for row in pilots:
+                    print(f"ID: {row[0]} | Name: {row[1]}")
+                
+                try:
+                    p_id = int(input("\nEnter Pilot ID to assign: "))
+                except ValueError:
+                    print("Invalid Pilot ID.")
+                    return
+                
+                # Insert new flight
+                conn.execute("INSERT INTO Flights (flight_num, departure_date, status, pilot_id, dest_id) VALUES (?, ?, ?, ?, ?)", 
+                            (flight_num, dep_date, status, p_id, new_dest_id))
+                conn.commit()
+                
+                print(f"\n[Success] New flight {flight_num} created and assigned to {new_city}")
 
 
 def view_summarised_data():
@@ -693,18 +706,19 @@ def main_menu():
         
         choice = input("\nSelect an option (1-8): ")
         
-        if choice == '1': add_new_flight()
-        elif choice == '2': view_flights_by_criteria()
-        elif choice == '3': update_flight_information()
-        elif choice == '4': assign_pilot_to_flight()
-        elif choice == '5': view_pilot_schedule()
-        elif choice == '6': manage_destination_info()
-        elif choice == '7': view_summarised_data()
-        elif choice == '8': 
-            print("Exiting System...")
-            break
-        else:
-            print("Invalid selection. Please try again.")
+        match choice:
+            case '1': add_new_flight()
+            case '2': view_flights_by_criteria()
+            case '3': update_flight_information()
+            case '4': assign_pilot_to_flight()
+            case '5': view_pilot_schedule()
+            case '6': manage_destination_info()
+            case '7': view_summarised_data()
+            case '8': 
+                print("Exiting System...")
+                break
+            case _:
+                print("Invalid selection. Please try again.")
 
 if __name__ == "__main__":
     main_menu()
