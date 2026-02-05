@@ -12,6 +12,20 @@ def get_connection():
 
 def add_new_flight():
     """Add a New Flight record to the database."""
+    print("\n" + "="*40)
+    print("   ADD NEW FLIGHT")
+    print("="*40)
+    print("1. Add a New Flight")
+    print("2. Return to Main Menu")
+    
+    choice = input("\nSelect an option (1-2): ").strip()
+    
+    if choice == '2':
+        return
+    elif choice != '1':
+        print("Invalid selection.")
+        return
+    
     conn = get_connection()
     
     # Show current flights so user doesn't duplicate
@@ -109,8 +123,9 @@ def view_flights_by_criteria():
     print("2. Flight Status")
     print("3. Departure Date")
     print("4. View All Flights")
+    print("5. Go Back to Main Menu")
     
-    choice = input("\nSelect filter criteria (1-4): ")
+    choice = input("\nSelect filter criteria (1-5): ").strip()
     
     if choice == '1':
         # Show available destinations
@@ -159,6 +174,9 @@ def view_flights_by_criteria():
                    FROM Flights f 
                    LEFT JOIN Destinations d ON f.dest_id = d.dest_id"""
         cursor = conn.execute(query)
+    elif choice == '5':
+        conn.close()
+        return
     else:
         print("Invalid selection.")
         conn.close()
@@ -182,6 +200,20 @@ def view_flights_by_criteria():
 
 def update_flight_information():
     """Update flight schedules, such as departure time, status, or destination."""
+    print("\n" + "="*40)
+    print("  UPDATE FLIGHT INFORMATION")
+    print("="*40)
+    print("1. Update a Flight")
+    print("2. Return to Main Menu")
+    
+    choice = input("\nSelect an option (1-2): ").strip()
+    
+    if choice == '2':
+        return
+    elif choice != '1':
+        print("Invalid selection.")
+        return
+    
     conn = get_connection()
     
     # Show available flights first
@@ -327,19 +359,39 @@ def update_flight_information():
 
 def assign_pilot_to_flight():
     """Assign a pilot to a flight and manage pilot schedules."""
+    print("\n" + "="*40)
+    print("  ASSIGN PILOT TO FLIGHT")
+    print("="*40)
+    print("1. Assign a Pilot to a Flight")
+    print("2. Return to Main Menu")
+    
+    choice = input("\nSelect an option (1-2): ").strip()
+    
+    if choice == '2':
+        return
+    elif choice != '1':
+        print("Invalid selection.")
+        return
+    
     conn = get_connection()
     
     # Show available flights
     print("\n--- Available Flights ---")
     cursor = conn.execute("SELECT flight_id, flight_num, departure_date FROM Flights")
-    for row in cursor.fetchall():
-        print(f"ID: {row[0]} | Flight: {row[1]} | Date: {row[2]}")
+    flights = cursor.fetchall()
+    print(f"{'ID':<5} | {'Flight':<10} | {'Date':<12}")
+    print("-" * 35)
+    for row in flights:
+        print(f"{row[0]:<5} | {row[1]:<10} | {row[2]:<12}")
     
     # Show available pilots
     print("\n--- Available Pilots ---")
     cursor = conn.execute("SELECT pilot_id, name FROM Pilots")
-    for row in cursor.fetchall():
-        print(f"ID: {row[0]} | Name: {row[1]}")
+    pilots = cursor.fetchall()
+    print(f"{'ID':<5} | {'Name':<20}")
+    print("-" * 30)
+    for row in pilots:
+        print(f"{row[0]:<5} | {row[1]:<20}")
     
     try:
         f_id = int(input("\nEnter Flight ID: "))
@@ -416,9 +468,9 @@ def manage_destination_info():
         print("2. Add New Destination")
         print("3. Update Destination Information")
         print("4. Delete a Destination")
-        print("5. Back to Main Menu")
+        print("5. Go Back to Main Menu")
         
-        choice = input("\nSelect an option (1-5): ")
+        choice = input("\nSelect an option (1-5): ").strip()
         
         if choice == '1':
             # View all destinations with flight counts
