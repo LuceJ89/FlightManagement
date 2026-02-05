@@ -188,6 +188,10 @@ def update_flight_information():
     print("\n--- Available Flights ---")
     cursor = conn.execute("SELECT flight_id, flight_num, departure_date, status, dest_id FROM Flights")
     flights = cursor.fetchall()
+    
+    print(f"\n{'ID':<5} | {'Flight':<10} | {'Date':<12} | {'Status':<12} | {'Destination':<15}")
+    print("-" * 70)
+    
     for row in flights:
         dest_city = "N/A"
         if row[4]:
@@ -195,22 +199,24 @@ def update_flight_information():
             dest_result = dest_cursor.fetchone()
             if dest_result:
                 dest_city = dest_result[0]
-        print(f"ID: {row[0]} | Flight: {row[1]} | Date: {row[2]} | Status: {row[3]} | Destination: {dest_city}")
+        print(f"{row[0]:<5} | {row[1]:<10} | {row[2]:<12} | {row[3]:<12} | {dest_city:<15}")
     
-    try:
-        f_id = int(input("\nEnter Flight ID to update: "))
-    except ValueError:
-        print("[Error] Invalid Flight ID. Please enter a number.")
-        conn.close()
-        return
-    
-    # Verify flight exists
-    cursor = conn.execute("SELECT flight_num, departure_date, status, dest_id FROM Flights WHERE flight_id = ?", (f_id,))
-    flight = cursor.fetchone()
-    if not flight:
-        print("[Error] Flight ID not found.")
-        conn.close()
-        return
+    # Get valid Flight ID
+    while True:
+        try:
+            f_id = int(input("\nEnter Flight ID to update (e.g. 110): "))
+        except ValueError:
+            print("[Error] Invalid Flight ID. Please enter a valid flight ID.")
+            continue
+        
+        # Verify flight exists
+        cursor = conn.execute("SELECT flight_num, departure_date, status, dest_id FROM Flights WHERE flight_id = ?", (f_id,))
+        flight = cursor.fetchone()
+        if not flight:
+            print("[Error] Flight ID not found. Please enter a valid Flight ID.")
+            continue
+        
+        break
     
     # Get new status with validation
     while True:
@@ -247,11 +253,12 @@ def update_flight_information():
         print("Available Destinations:")
         for idx, dest in enumerate(destinations, 1):
             print(f"{idx}. {dest[1]} ({dest[2]})")
-        print(f"{len(destinations) + 1}. Don't change destination")
+        print(f"{len(destinations) + 1}. Add a new destination")
+        print(f"{len(destinations) + 2}. Keep current destination")
         
         while True:
             try:
-                dest_choice = input("\nSelect new destination (or leave blank to keep current): ").strip()
+                dest_choice = input("\nSelect destination (or leave blank to keep current): ").strip()
                 if dest_choice == "":
                     break  # Keep current destination
                 dest_choice = int(dest_choice)
@@ -259,11 +266,41 @@ def update_flight_information():
                     new_dest_id = destinations[dest_choice - 1][0]
                     break
                 elif dest_choice == len(destinations) + 1:
+                    # Add new destination
+                    city = input("Enter City Name: ").strip()
+                    airport_code = input("Enter Airport Code (e.g., JFK): ").strip().upper()
+                    try:
+                        cursor = conn.execute("INSERT INTO Destinations (city, airport_code) VALUES (?, ?)", 
+                                            (city, airport_code))
+                        conn.commit()
+                        new_dest_id = cursor.lastrowid
+                        print(f"[Success] New destination '{city}' ({airport_code}) added.")
+                        break
+                    except sqlite3.IntegrityError:
+                        print(f"[Error] Airport code '{airport_code}' already exists.")
+                        continue
+                elif dest_choice == len(destinations) + 2:
                     break  # Don't change destination
                 else:
                     print("[Error] Invalid selection. Please enter a valid number.")
             except ValueError:
                 print("[Error] Please enter a valid number.")
+    else:
+        # No destinations exist
+        print("No destinations available.")
+        add_new = input("Would you like to add a new destination? (yes/no): ").strip().lower()
+        if add_new == "yes":
+            city = input("Enter City Name: ").strip()
+            airport_code = input("Enter Airport Code (e.g., JFK): ").strip().upper()
+            try:
+                cursor = conn.execute("INSERT INTO Destinations (city, airport_code) VALUES (?, ?)", 
+                                    (city, airport_code))
+                conn.commit()
+                new_dest_id = cursor.lastrowid
+                print(f"[Success] New destination '{city}' ({airport_code}) added.")
+            except sqlite3.IntegrityError:
+                print(f"[Error] Airport code '{airport_code}' already exists.")
+
     
     # Update the flight
     conn.execute("UPDATE Flights SET status = ?, departure_date = ?, dest_id = ? WHERE flight_id = ?", 
