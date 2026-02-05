@@ -434,7 +434,7 @@ def main_menu():
         print("3. Update Flight Information")
         print("4. Assign Pilot to Flight")
         print("5. View Pilot Schedule")
-        print("6. View/Update Destination Information")
+        print("6. Destination Management")
         print("7. View Summarised Reports")
         print("8. Exit")
         
