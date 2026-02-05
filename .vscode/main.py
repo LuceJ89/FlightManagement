@@ -370,8 +370,14 @@ def view_pilot_schedule():
     # Show available pilots first
     print("\n--- Available Pilots ---")
     cursor = conn.execute("SELECT pilot_id, name, license_num FROM Pilots")
-    for row in cursor.fetchall():
-        print(f"ID: {row[0]} | Name: {row[1]} | License: {row[2]}")
+    pilots = cursor.fetchall()
+    if pilots:
+        print(f"{'ID':<5} | {'Name':<20} | {'License':<12}")
+        print("-" * 43)
+        for row in pilots:
+            print(f"{row[0]:<5} | {row[1]:<20} | {row[2]:<12}")
+    else:
+        print("No pilots available.")
     
     try:
         p_id = int(input("\nEnter Pilot ID to view their assigned flights: "))
@@ -389,8 +395,10 @@ def view_pilot_schedule():
     
     print(f"\n--- Schedule for Pilot ID {p_id} ---")
     if results:
+        print(f"{'Flight':<10} | {'Date':<12} | {'Destination':<15}")
+        print("-" * 43)
         for row in results:
-            print(f"Flight {row[0]} | Date: {row[1]} | Destination: {row[2]}")
+            print(f"{row[0]:<10} | {row[1]:<12} | {str(row[2]):<15}")
     else:
         print("No flights assigned to this pilot.")
     
@@ -602,6 +610,15 @@ def view_summarised_data():
                 GROUP BY p.pilot_id, p.name"""
     print("\n--- Summary: Flights per Pilot ---")
     for row in conn.execute(query2):
+        print(f"{row[0]}: {row[1]} flight(s)")
+
+    # Summary 3: Flights by status
+    query3 = """SELECT status, COUNT(flight_id)
+                FROM Flights
+                GROUP BY status
+                ORDER BY status"""
+    print("\n--- Summary: Flights by Status ---")
+    for row in conn.execute(query3):
         print(f"{row[0]}: {row[1]} flight(s)")
     
     conn.close()
