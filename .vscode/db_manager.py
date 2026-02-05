@@ -1,27 +1,25 @@
 import sqlite3
+import os
 
 def run_setup():
     # This creates the physical database file
     conn = sqlite3.connect('airline_data.db')
     cursor = conn.cursor()
 
-    # Create Tables based on Task 1 Relational Schema
-    cursor.executescript('''
-    CREATE TABLE IF NOT EXISTS Pilots (
-        pilot_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT, license_num TEXT UNIQUE);
-
-    CREATE TABLE IF NOT EXISTS Destinations (
-        dest_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        city TEXT, airport_code TEXT UNIQUE);
-
-    CREATE TABLE IF NOT EXISTS Flights (
-        flight_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        flight_num TEXT, departure_date TEXT, status TEXT,
-        pilot_id INTEGER, dest_id INTEGER,
-        FOREIGN KEY(pilot_id) REFERENCES Pilots(pilot_id),
-        FOREIGN KEY(dest_id) REFERENCES Destinations(dest_id));
-    ''')
+      # Instead of hardcoding the CREATE TABLE statements, we read them from schema.sql
+    try:
+        # Get the directory where this script is located
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        schema_path = os.path.join(script_dir, 'schema.sql')
+        with open(schema_path, 'r') as f:
+            schema_script = f.read()
+        
+        # Execute the SQL code found inside schema.sql
+        cursor.executescript(schema_script)
+        print("Schema applied successfully from schema.sql")
+    except FileNotFoundError:
+        print("Error: schema.sql file not found. Make sure it is in the same folder.")
+        return
 
     # Populate with 10 records per table
     pilots = [
@@ -58,7 +56,7 @@ def run_setup():
 
     conn.commit()
     conn.close()
-    print("Database 'airline_data.db' initialized and seeded.")
+    print("Database 'airline_data.db' successfully initialised.")
 
 if __name__ == "__main__":
     run_setup()
