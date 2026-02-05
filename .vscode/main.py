@@ -7,7 +7,7 @@ def get_connection():
     """Helper function to establish a database connection."""
     return sqlite3.connect(DB_FILE)
 
-# --- CLI FUNCTIONS MAPPED TO REQUIREMENTS ---
+# --- CLI FUNCTIONS ---
 
 def add_new_flight():
     """Add a New Flight record to the database."""
