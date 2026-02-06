@@ -1,7 +1,7 @@
 import sqlite3
 import re
 
-# Define the database file name chosen for your project
+# Database file
 DB_FILE = 'airline_data.db'
 
 def get_connection():
@@ -31,7 +31,7 @@ def add_new_flight():
     
     conn = get_connection()
     
-    # Show current flights so user doesn't duplicate
+    # Showing current flights so user doesn't duplicate flight numbers
     print("\n--- Current Flights ---")
     cursor = conn.execute("SELECT flight_num FROM Flights ORDER BY flight_num")
     existing_flights = [row[0] for row in cursor.fetchall()]
@@ -94,7 +94,7 @@ def add_new_flight():
             except ValueError:
                 print("[Error] Please enter a valid number.")
     else:
-        # No destinations exist, must add one
+        # No destinations exist, prompt to add one
         print("No destinations available. You must add one first.")
         city = input("Enter City Name: ").strip()
         airport_code = input("Enter Airport Code (e.g., JFK): ").strip().upper()
@@ -139,9 +139,10 @@ def view_flights_by_criteria():
             print(", ".join(cities))
             
             city = input("\nEnter Destination City: ")
-            query = """SELECT f.flight_num, d.city, f.status, f.departure_date 
-                       FROM Flights f 
-                       LEFT JOIN Destinations d ON f.dest_id = d.dest_id 
+            query = """SELECT f.flight_num, d.city, f.status, f.departure_date, p.name
+                       FROM Flights f
+                       LEFT JOIN Destinations d ON f.dest_id = d.dest_id
+                       LEFT JOIN Pilots p ON f.pilot_id = p.pilot_id
                        WHERE d.city LIKE ?"""
             cursor = conn.execute(query, (f'%{city}%',))
             
@@ -153,9 +154,10 @@ def view_flights_by_criteria():
             print(", ".join(statuses))
             
             status = input("\nEnter Status: ")
-            query = """SELECT f.flight_num, d.city, f.status, f.departure_date 
-                       FROM Flights f 
-                       LEFT JOIN Destinations d ON f.dest_id = d.dest_id 
+            query = """SELECT f.flight_num, d.city, f.status, f.departure_date, p.name
+                       FROM Flights f
+                       LEFT JOIN Destinations d ON f.dest_id = d.dest_id
+                       LEFT JOIN Pilots p ON f.pilot_id = p.pilot_id
                        WHERE f.status LIKE ?"""
             cursor = conn.execute(query, (f'%{status}%',))
             
@@ -167,16 +169,18 @@ def view_flights_by_criteria():
             print(", ".join(dates))
             
             dep_date = input("\nEnter Departure Date (YYYY-MM-DD): ")
-            query = """SELECT f.flight_num, d.city, f.status, f.departure_date 
-                       FROM Flights f 
-                       LEFT JOIN Destinations d ON f.dest_id = d.dest_id 
+            query = """SELECT f.flight_num, d.city, f.status, f.departure_date, p.name
+                       FROM Flights f
+                       LEFT JOIN Destinations d ON f.dest_id = d.dest_id
+                       LEFT JOIN Pilots p ON f.pilot_id = p.pilot_id
                        WHERE f.departure_date LIKE ?"""
             cursor = conn.execute(query, (f'%{dep_date}%',))
             
         case '4':
-            query = """SELECT f.flight_num, d.city, f.status, f.departure_date 
-                       FROM Flights f 
-                       LEFT JOIN Destinations d ON f.dest_id = d.dest_id"""
+            query = """SELECT f.flight_num, d.city, f.status, f.departure_date, p.name
+                       FROM Flights f
+                       LEFT JOIN Destinations d ON f.dest_id = d.dest_id
+                       LEFT JOIN Pilots p ON f.pilot_id = p.pilot_id"""
             cursor = conn.execute(query)
         case '5':
             conn.close()
@@ -191,12 +195,13 @@ def view_flights_by_criteria():
     print(f"\n{'='*55}")
     print(f"RESULTS: {len(results)} flight(s) found")
     print(f"{'='*55}")
-    print(f"\n{'Flight':<10} | {'Destination':<15} | {'Status':<12} | {'Date'}")
-    print("-" * 55)
+    print(f"\n{'Flight':<10} | {'Destination':<15} | {'Status':<12} | {'Date':<12} | {'Pilot'}")
+    print("-" * 75)
     
     if results:
         for row in results:
-            print(f"{row[0]:<10} | {str(row[1]):<15} | {row[2]:<12} | {row[3]}")
+            pilot_name = row[4] if row[4] else "Unassigned"
+            print(f"{row[0]:<10} | {str(row[1]):<15} | {row[2]:<12} | {row[3]:<12} | {pilot_name}")
     else:
         print("No flights match your criteria.")
     
@@ -257,7 +262,7 @@ def update_flight_information():
         
         break
     
-    # Get new status with validation
+    # Get new status with validation rules
     while True:
         new_status = input("Enter new status (or leave blank to keep current): ").strip()
         if new_status == "":
@@ -387,12 +392,15 @@ def assign_pilot_to_flight():
     
     # Show available flights
     print("\n--- Available Flights ---")
-    cursor = conn.execute("SELECT flight_id, flight_num, departure_date FROM Flights")
+    cursor = conn.execute("""SELECT f.flight_id, f.flight_num, f.departure_date, p.name
+                           FROM Flights f
+                           LEFT JOIN Pilots p ON f.pilot_id = p.pilot_id""")
     flights = cursor.fetchall()
-    print(f"{'ID':<5} | {'Flight':<10} | {'Date':<12}")
-    print("-" * 35)
+    print(f"{'ID':<5} | {'Flight':<10} | {'Date':<12} | {'Pilot'}")
+    print("-" * 60)
     for row in flights:
-        print(f"{row[0]:<5} | {row[1]:<10} | {row[2]:<12}")
+        pilot_name = row[3] if row[3] else "Unassigned"
+        print(f"{row[0]:<5} | {row[1]:<10} | {row[2]:<12} | {pilot_name}")
     
     # Show available pilots
     print("\n--- Available Pilots ---")
@@ -688,7 +696,7 @@ def view_summarised_data():
     
     conn.close()
 
-# --- MAIN CLI MENU --- #
+#--- MAIN CLI MENU --- #
 
 def main_menu():
     while True:
