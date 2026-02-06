@@ -515,14 +515,24 @@ def manage_destination_info():
                 cursor = conn.execute("SELECT dest_id, airport_code, city FROM Destinations ORDER BY city")
                 print("\n--- Available Destinations ---")
                 destinations = cursor.fetchall()
+                print(f"{'ID':<5} | {'Code':<8} | {'City'}")
+                print("-" * 40)
                 for row in destinations:
-                    print(f"ID: {row[0]} | Code: {row[1]} | City: {row[2]}")
+                    print(f"{row[0]:<5} | {row[1]:<8} | {row[2]}")
                 
-                try:
-                    d_id = int(input("\nEnter Destination ID to update: "))
-                except ValueError:
-                    print("Invalid ID. Please enter a number.")
-                    continue
+                while True:
+                    try:
+                        d_id = int(input("\nEnter Destination ID to update: "))
+                    except ValueError:
+                        print("Invalid ID. Please enter a valid destination ID.")
+                        continue
+
+                    cursor = conn.execute("SELECT 1 FROM Destinations WHERE dest_id = ?", (d_id,))
+                    if not cursor.fetchone():
+                        print("[Error] Destination ID not found. Please enter a valid ID.")
+                        continue
+
+                    break
                 
                 print("\nWhat would you like to update?")
                 print("1. City Name")
@@ -546,14 +556,24 @@ def manage_destination_info():
                 cursor = conn.execute("SELECT dest_id, airport_code, city FROM Destinations ORDER BY city")
                 print("\n--- Available Destinations ---")
                 destinations = cursor.fetchall()
+                print(f"{'ID':<5} | {'Code':<8} | {'City'}")
+                print("-" * 40)
                 for row in destinations:
-                    print(f"ID: {row[0]} | Code: {row[1]} | City: {row[2]}")
+                    print(f"{row[0]:<5} | {row[1]:<8} | {row[2]}")
                 
-                try:
-                    d_id = int(input("\nEnter Destination ID to delete: "))
-                except ValueError:
-                    print("Invalid ID. Please enter a number.")
-                    continue
+                while True:
+                    try:
+                        d_id = int(input("\nEnter Destination ID to delete: "))
+                    except ValueError:
+                        print("Invalid ID. Please enter a valid destination ID.")
+                        continue
+
+                    cursor = conn.execute("SELECT 1 FROM Destinations WHERE dest_id = ?", (d_id,))
+                    if not cursor.fetchone():
+                        print("[Error] Destination ID not found. Please enter a valid ID.")
+                        continue
+
+                    break
                 
                 # Check if destination has flights
                 cursor = conn.execute("SELECT COUNT(*) FROM Flights WHERE dest_id = ?", (d_id,))
