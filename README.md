@@ -1,51 +1,63 @@
 # FlightManagement
 
 Airline Flight Management System
-This repository contains a relational database solution and a Python-based Command-Line Interface (CLI) designed to manage airline logistics, including flights, pilots, and destinations.
 
-Project Structure:
-schema.sql: The Data Definition Language (DDL) script that establishes the relational schema, including Primary Keys and Foreign Key constraints.
+A robust, Python-based Command Line Interface (CLI) application integrated with an SQLite3 relational database. This system is designed to manage airline operations, including flight scheduling, pilot assignments, and destination management.
 
-db_manager.py: A management script used to initialise the SQLite database and seed it with 30+ sample records (10–15 per table) for testing purposes.
+Features:
+Guided Data Entry: Instead of memorising ID numbers, the system provides numbered lists of pilots and destinations to ensure ease of use and data accuracy.
 
-main.py: The primary application file featuring a CLI menu for staff interaction, including CRUD operations and data summarisation.
+Robust Validation:
+Uses Regular Expressions (Regex) to enforce flight number formats (e.g., FL-101) and date formats (YYYY-MM-DD).
 
-airline_data.db: The SQLite database file (generated after running the setup script).
+Prevents duplicate flight numbers and duplicate airport codes.
+Validates that status updates do not contain numeric values.
+
+Relational Integrity:
+Enforces Foreign Key relationships between Pilots, Destinations, and Flights.
+Includes a "Safe Delete" mechanism that prevents deleting destinations that have active flights assigned to them.
+
+Operational Reporting:
+Generates summarised reports using SQL aggregation (GROUP BY, COUNT).
+Tracks flight density per destination, pilot workloads, and operational status (Delayed, On Time, etc.).
+
+Safe Navigation: Sub-menus in critical sections (Add, Update, Assign) allow users to return to the Main Menu without making accidental changes, by selecting 2 (return to main menu).
+
+File Structure:
+Main.py: The primary application file containing the CLI menu and the logic for interacting with the database.
+
+db_manager.py: The setup script used to initialise the database, read the schema, and seed the tables with initial sample data.
+
+schema.sql: The Data Definition Language (DDL) file containing the SQL blueprints for the Pilots, Destinations, and Flights tables.
+
+airline_data.db: The SQLite database file (generated automatically upon setup).
 
 Installation & Setup:
-To run this project in GitHub Codespaces or a local environment, follow these steps:
-
-Clone the Repository:
-
+Clone the repository or download the project files into a single folder.
+Ensure Python 3.x is installed on your system.
+Initialize the Database: Run the following command to create the database file and populate it with sample data:
 Bash
-git clone <your-repo-link>
-cd <repo-name>
-Initialize the Database: Run the management script to create the tables and populate the sample data.
 
-Bash
 python db_manager.py
-Launch the Application: Start the CLI menu to interact with the system.
-
+Run the Application: Launch the management system by running:
 Bash
-python main.py
-Features & Functionality:
-The application supports the following core interactions required by the project brief:
 
-Flight Management: Add new flights and update existing schedules or statuses.
+python Main.py
+Database Schema
 
-Relational Filtering: Retrieve flights based on destination, status, or departure date using SQL JOIN logic.
+The system utilises three normalised tables:
 
-Pilot Logistics: Assign pilots to flights and retrieve individual pilot schedules.
+Pilots: pilot_id (PK), name, license_num.
+Destinations: dest_id (PK), city, airport_code.
+Flights: flight_id (PK), flight_num, departure_date, status, pilot_id (FK), dest_id (FK).
+💻 Usage Instructions
 
-Destination Management: Create, update, or delete destination records with dependency checks.
+Add a New Flight: Follow the prompts to enter a flight number. You can select an existing destination from the list or add a new one instantly.
 
-Data Insights: Generate summarized reports showing flight counts per destination and per pilot using GROUP BY aggregations.
+Filter Flights: Search for flights based on destination, status, or date.
 
-Database Design:
-The system utilizes a normalized relational model based on the Chen Notation ER Diagram.
+Update Information: Select a flight by its ID to change its status, date, or destination. You can leave fields blank to keep current values.
 
-Entities: Pilots, Destinations, and Flights.
+Manage Destinations: View flight counts per city or delete unused destinations.
 
-Integrity: Parameterised SQL queries are used throughout to prevent SQL injection and ensure data security.
-
-Relationships: One-to-Many relationships are maintained via Foreign Keys in the Flights table.
+Summarised Reports: View high-level statistics on airline operations.
