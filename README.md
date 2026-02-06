@@ -24,6 +24,7 @@ Tracks flight density per destination, pilot workloads, and operational status (
 Safe Navigation: Sub-menus in critical sections (Add, Update, Assign) allow users to return to the Main Menu without making accidental changes, by selecting 2 (return to main menu).
 
 File Structure:
+
 Main.py: The primary application file containing the CLI menu and the logic for interacting with the database.
 
 db_manager.py: The setup script used to initialise the database, read the schema, and seed the tables with initial sample data.
@@ -50,7 +51,8 @@ The system utilises three normalised tables:
 Pilots: pilot_id (PK), name, license_num.
 Destinations: dest_id (PK), city, airport_code.
 Flights: flight_id (PK), flight_num, departure_date, status, pilot_id (FK), dest_id (FK).
-💻 Usage Instructions
+
+Usage Instructions:
 
 Add a New Flight: Follow the prompts to enter a flight number. You can select an existing destination from the list or add a new one instantly.
 
