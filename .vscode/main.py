@@ -411,13 +411,35 @@ def assign_pilot_to_flight():
     for row in pilots:
         print(f"{row[0]:<5} | {row[1]:<20}")
     
-    try:
-        f_id = int(input("\nEnter Flight ID: "))
-        p_id = int(input("Enter Pilot ID to assign: "))
-    except ValueError:
-        print("Invalid ID. Please enter numbers only.")
-        conn.close()
-        return
+    # Validate Flight ID exists
+    while True:
+        try:
+            f_id = int(input("\nEnter Flight ID: "))
+        except ValueError:
+            print("[Error] Invalid Flight ID. Please enter a valid flight ID.")
+            continue
+
+        cursor = conn.execute("SELECT 1 FROM Flights WHERE flight_id = ?", (f_id,))
+        if not cursor.fetchone():
+            print("[Error] Flight ID not found. Please enter a valid Flight ID.")
+            continue
+
+        break
+
+    # Validate Pilot ID exists
+    while True:
+        try:
+            p_id = int(input("Enter Pilot ID to assign: "))
+        except ValueError:
+            print("[Error] Invalid Pilot ID. Please enter a valid pilot ID.")
+            continue
+
+        cursor = conn.execute("SELECT 1 FROM Pilots WHERE pilot_id = ?", (p_id,))
+        if not cursor.fetchone():
+            print("[Error] Pilot ID not found. Please enter a valid Pilot ID.")
+            continue
+
+        break
     
     conn.execute("UPDATE Flights SET pilot_id = ? WHERE flight_id = ?", (p_id, f_id))
     conn.commit()
@@ -449,12 +471,19 @@ def view_pilot_schedule():
     else:
         print("No pilots available.")
     
-    try:
-        p_id = int(input("\nEnter Pilot ID to view their assigned flights: "))
-    except ValueError:
-        print("Invalid Pilot ID. Please enter a number.")
-        conn.close()
-        return
+    while True:
+        try:
+            p_id = int(input("\nEnter Pilot ID to view their assigned flights: "))
+        except ValueError:
+            print("[Error] Invalid Pilot ID. Please enter a valid pilot ID.")
+            continue
+
+        cursor = conn.execute("SELECT 1 FROM Pilots WHERE pilot_id = ?", (p_id,))
+        if not cursor.fetchone():
+            print("[Error] Pilot ID not found. Please enter a valid Pilot ID.")
+            continue
+
+        break
     
     query = """SELECT f.flight_num, f.departure_date, d.city 
                FROM Flights f 
@@ -627,11 +656,19 @@ def add_new_destination(conn):
                 for row in flights:
                     print(f"ID: {row[0]} | Flight: {row[1]} | Date: {row[2]} | Pilot ID: {row[3]}")
                 
-                try:
-                    f_id = int(input("\nEnter Flight ID to assign: "))
-                except ValueError:
-                    print("Invalid Flight ID.")
-                    return
+                while True:
+                    try:
+                        f_id = int(input("\nEnter Flight ID to assign: "))
+                    except ValueError:
+                        print("[Error] Invalid Flight ID. Please enter a valid flight ID.")
+                        continue
+
+                    cursor = conn.execute("SELECT 1 FROM Flights WHERE flight_id = ?", (f_id,))
+                    if not cursor.fetchone():
+                        print("[Error] Flight ID not found. Please enter a valid Flight ID.")
+                        continue
+
+                    break
                 
                 # Show available pilots
                 cursor = conn.execute("SELECT pilot_id, name FROM Pilots ORDER BY pilot_id")
@@ -640,11 +677,19 @@ def add_new_destination(conn):
                 for row in pilots:
                     print(f"ID: {row[0]} | Name: {row[1]}")
                 
-                try:
-                    p_id = int(input("\nEnter Pilot ID to assign: "))
-                except ValueError:
-                    print("Invalid Pilot ID.")
-                    return
+                while True:
+                    try:
+                        p_id = int(input("\nEnter Pilot ID to assign: "))
+                    except ValueError:
+                        print("[Error] Invalid Pilot ID. Please enter a valid pilot ID.")
+                        continue
+
+                    cursor = conn.execute("SELECT 1 FROM Pilots WHERE pilot_id = ?", (p_id,))
+                    if not cursor.fetchone():
+                        print("[Error] Pilot ID not found. Please enter a valid Pilot ID.")
+                        continue
+
+                    break
                 
                 # Update flight with new destination and pilot
                 conn.execute("UPDATE Flights SET dest_id = ?, pilot_id = ? WHERE flight_id = ?", (new_dest_id, p_id, f_id))
@@ -658,9 +703,35 @@ def add_new_destination(conn):
             
             case '2':
                 # Create new flight
-                flight_num = input("\nEnter flight number (e.g., FL-200): ")
-                dep_date = input("Enter departure date (YYYY-MM-DD): ")
-                status = input("Enter status (Scheduled/On Time/Delayed/Cancelled): ")
+                while True:
+                    flight_num = input("\nEnter flight number (e.g., FL-200): ").strip()
+                    if not re.match(r'^FL-\d{3}$', flight_num):
+                        print("[Error] Invalid flight number format. Must be FL-XXX (e.g., FL-200)")
+                        continue
+
+                    cursor = conn.execute("SELECT 1 FROM Flights WHERE flight_num = ?", (flight_num,))
+                    if cursor.fetchone():
+                        print(f"[Error] Flight number '{flight_num}' already exists. Please use a different number.")
+                        continue
+
+                    break
+
+                while True:
+                    dep_date = input("Enter departure date (YYYY-MM-DD): ").strip()
+                    if not re.match(r'^\d{4}-\d{2}-\d{2}$', dep_date):
+                        print("[Error] Invalid date format. Please use YYYY-MM-DD (e.g., 2026-05-10)")
+                        continue
+                    break
+
+                while True:
+                    status = input("Enter status (Scheduled/On Time/Delayed/Cancelled): ").strip()
+                    if status == "":
+                        print("[Error] Status cannot be blank. Please try again.")
+                        continue
+                    if status.isdigit():
+                        print("[Error] Status should contain letters, not numbers. Please try again.")
+                        continue
+                    break
                 
                 # Show available pilots
                 cursor = conn.execute("SELECT pilot_id, name FROM Pilots ORDER BY pilot_id")
@@ -669,11 +740,19 @@ def add_new_destination(conn):
                 for row in pilots:
                     print(f"ID: {row[0]} | Name: {row[1]}")
                 
-                try:
-                    p_id = int(input("\nEnter Pilot ID to assign: "))
-                except ValueError:
-                    print("Invalid Pilot ID.")
-                    return
+                while True:
+                    try:
+                        p_id = int(input("\nEnter Pilot ID to assign: "))
+                    except ValueError:
+                        print("[Error] Invalid Pilot ID. Please enter a valid pilot ID.")
+                        continue
+
+                    cursor = conn.execute("SELECT 1 FROM Pilots WHERE pilot_id = ?", (p_id,))
+                    if not cursor.fetchone():
+                        print("[Error] Pilot ID not found. Please enter a valid Pilot ID.")
+                        continue
+
+                    break
                 
                 # Insert new flight
                 conn.execute("INSERT INTO Flights (flight_num, departure_date, status, pilot_id, dest_id) VALUES (?, ?, ?, ?, ?)", 

@@ -36,7 +36,7 @@ airline_data.db: The SQLite database file (generated automatically upon setup).
 Installation & Setup:
 Clone the repository or download the project files into a single folder.
 Ensure Python 3.x is installed on your system.
-Initialize the Database: Run the following command to create the database file and populate it with sample data:
+Initialise the Database: Run the following command to create the database file and populate it with sample data:
 Bash
 
 python db_manager.py
@@ -56,10 +56,16 @@ Usage Instructions:
 
 Add a New Flight: Follow the prompts to enter a flight number. You can select an existing destination from the list or add a new one instantly.
 
-Filter Flights: Search for flights based on destination, status, or date.
+Filter Flights by Criteria: Search for flights based on destination, status, or date.
 
-Update Information: Select a flight by its ID to change its status, date, or destination. You can leave fields blank to keep current values.
+Update Flight Information: Select a flight by its ID to change its status, date, or destination. You can leave fields blank to keep current values.
 
-Manage Destinations: View flight counts per city or delete unused destinations.
+Assign Pilit to Flight: Allow the uder to select a pilot based on thier ID, with a view of all flights and pilots assinged to these flights.
 
-Summarised Reports: View high-level statistics on airline operations.
+View Pilot Schedule: Allows the user to see the pilots that are availbale - and select a pilot to view thier schedule. 
+
+Manage Destinations: View all destinations that are available, add a new destination, update the destination information like the airport code/name, delete a destination - will provide a warning message if flights are assigned. Also allows you to navigate back to the main menu by selecting option 5.
+
+Summarised Reports: View high-level statistics on airline operations. Generates 3 statuses: Flights per destination, flights per pilot and flights by status.
+
+To close the application select 8.
