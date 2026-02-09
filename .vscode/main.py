@@ -836,5 +836,5 @@ def main_menu():
                 print("Invalid selection. Please try again.")
 
 if __name__ == "__main__":
-    ensure_database_initialized()
+    ensure_database_initialised()
     main_menu()
