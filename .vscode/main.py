@@ -1,8 +1,16 @@
 import sqlite3
 import re
+import os
+
+from db_manager import run_setup
 
 # Database file
 DB_FILE = 'airline_data.db'
+
+
+def ensure_database_initialised():
+    if not os.path.exists(DB_FILE):
+        run_setup()
 
 def get_connection():
     """Helper function to establish a database connection."""
@@ -828,4 +836,5 @@ def main_menu():
                 print("Invalid selection. Please try again.")
 
 if __name__ == "__main__":
+    ensure_database_initialized()
     main_menu()
