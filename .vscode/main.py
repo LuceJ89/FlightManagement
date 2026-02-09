@@ -16,6 +16,168 @@ def get_connection():
     """Helper function to establish a database connection."""
     return sqlite3.connect(DB_FILE)
 
+
+def prompt_new_flight_number(conn, prompt_text="\nEnter Flight Number (format: FL-XXX, e.g., FL-101): ", example="FL-101"):
+    while True:
+        f_num = input(prompt_text).strip()
+        if not re.match(r'^FL-\d{3}$', f_num):
+            print(f"[Error] Invalid flight number format. Must be FL-XXX (e.g., {example})")
+            continue
+
+        cursor = conn.execute("SELECT flight_num FROM Flights WHERE flight_num = ?", (f_num,))
+        if cursor.fetchone():
+            print(f"[Error] Flight number '{f_num}' already exists. Please use a different number.")
+            continue
+
+        return f_num
+
+
+def prompt_existing_id(conn, table, id_column, prompt_text, invalid_message, not_found_message):
+    while True:
+        try:
+            value = int(input(prompt_text))
+        except ValueError:
+            print(invalid_message)
+            continue
+
+        cursor = conn.execute(f"SELECT 1 FROM {table} WHERE {id_column} = ?", (value,))
+        if not cursor.fetchone():
+            print(not_found_message)
+            continue
+
+        return value
+
+
+def prompt_date(prompt_text, allow_blank=False, default_value=None):
+    while True:
+        value = input(prompt_text).strip()
+        if allow_blank and value == "":
+            return default_value
+        if not re.match(r'^\d{4}-\d{2}-\d{2}$', value):
+            print("[Error] Invalid date format. Please use YYYY-MM-DD (e.g., 2026-05-10)")
+            continue
+        return value
+
+
+def prompt_status(prompt_text, allow_blank=False, default_value=None):
+    while True:
+        status = input(prompt_text).strip()
+        if status == "" and allow_blank:
+            return default_value
+        if status == "":
+            print("[Error] Status cannot be blank. Please try again.")
+            continue
+        if status.isdigit():
+            print("[Error] Status should contain letters, not numbers. Please try again.")
+            continue
+        return status
+
+
+def create_destination(
+    conn,
+    allow_retry=True,
+    include_id=False,
+    city_prompt="Enter City Name: ",
+    code_prompt="Enter Airport Code (e.g., JFK): ",
+    normalize_code=True,
+):
+    while True:
+        city = input(city_prompt).strip()
+        airport_code = input(code_prompt).strip()
+        if normalize_code:
+            airport_code = airport_code.upper()
+        try:
+            cursor = conn.execute(
+                "INSERT INTO Destinations (city, airport_code) VALUES (?, ?)",
+                (city, airport_code),
+            )
+            conn.commit()
+            dest_id = cursor.lastrowid
+            if include_id:
+                print(f"\n[Success] New destination '{city}' ({airport_code}) created with ID: {dest_id}")
+            else:
+                print(f"[Success] New destination '{city}' ({airport_code}) added.")
+            return dest_id, city, airport_code
+        except sqlite3.IntegrityError:
+            print(f"[Error] Airport code '{airport_code}' already exists.")
+            if allow_retry:
+                continue
+            return None
+
+
+def select_destination_id(
+    conn,
+    allow_add=True,
+    allow_keep=False,
+    current_id=None,
+    allow_blank=False,
+    prompt_text="\nSelect destination (number): ",
+    invalid_number_message="[Error] Please enter a valid number.",
+    invalid_selection_message="[Error] Invalid selection. Please try again.",
+):
+    cursor = conn.execute("SELECT dest_id, city, airport_code FROM Destinations ORDER BY city")
+    destinations = cursor.fetchall()
+
+    if destinations:
+        print("Available Destinations:")
+        for idx, dest in enumerate(destinations, 1):
+            print(f"{idx}. {dest[1]} ({dest[2]})")
+        if allow_add:
+            print(f"{len(destinations) + 1}. Add a new destination")
+        if allow_keep:
+            keep_index = len(destinations) + (2 if allow_add else 1)
+            print(f"{keep_index}. Keep current destination")
+
+        while True:
+            dest_choice = input(prompt_text).strip()
+            if allow_blank and dest_choice == "":
+                return current_id
+            try:
+                dest_choice = int(dest_choice)
+            except ValueError:
+                print(invalid_number_message)
+                continue
+
+            if 1 <= dest_choice <= len(destinations):
+                return destinations[dest_choice - 1][0]
+
+            add_index = len(destinations) + 1 if allow_add else None
+            keep_index = len(destinations) + (2 if allow_add else 1) if allow_keep else None
+
+            if allow_add and dest_choice == add_index:
+                created = create_destination(conn, allow_retry=True, include_id=False)
+                if created is not None:
+                    dest_id, _, _ = created
+                    return dest_id
+                continue
+
+            if allow_keep and dest_choice == keep_index:
+                return current_id
+
+            print(invalid_selection_message)
+
+    if not allow_add:
+        print("No destinations available.")
+        return current_id
+
+    if allow_keep:
+        print("No destinations available.")
+        add_new = input("Would you like to add a new destination? (yes/no): ").strip().lower()
+        if add_new != "yes":
+            return current_id
+        created = create_destination(conn, allow_retry=False, include_id=False)
+        if created is None:
+            return current_id
+        dest_id, _, _ = created
+        return dest_id
+
+    print("No destinations available. You must add one first.")
+    created = create_destination(conn, allow_retry=False, include_id=False)
+    if created is None:
+        return current_id
+    dest_id, _, _ = created
+    return dest_id
+
 # --- CLI FUNCTIONS --- #
 
 def add_new_flight():
@@ -49,73 +211,14 @@ def add_new_flight():
         print("No flights currently in the system.")
     
     # Get and validate flight number
-    while True:
-        f_num = input("\nEnter Flight Number (format: FL-XXX, e.g., FL-101): ").strip()
-        
-        # Check format: FL-XXX (where XXX are digits)
-        if not re.match(r'^FL-\d{3}$', f_num):
-            print(f"[Error] Invalid flight number format. Must be FL-XXX (e.g., FL-101)")
-            continue
-        
-        # Check if flight number already exists
-        cursor = conn.execute("SELECT flight_num FROM Flights WHERE flight_num = ?", (f_num,))
-        if cursor.fetchone():
-            print(f"[Error] Flight number '{f_num}' already exists. Please use a different number.")
-            continue
-        
-        # Format is valid and flight number is unique
-        break
+    f_num = prompt_new_flight_number(conn)
     
     # Select or add destination
     print("\n--- Destination Selection ---")
-    cursor = conn.execute("SELECT dest_id, city, airport_code FROM Destinations ORDER BY city")
-    destinations = cursor.fetchall()
-    
-    if destinations:
-        print("Available Destinations:")
-        for idx, dest in enumerate(destinations, 1):
-            print(f"{idx}. {dest[1]} ({dest[2]})")
-        print(f"{len(destinations) + 1}. Add a new destination")
-        
-        while True:
-            try:
-                dest_choice = int(input("\nSelect destination (number): "))
-                if 1 <= dest_choice <= len(destinations):
-                    dest_id = destinations[dest_choice - 1][0]
-                    break
-                elif dest_choice == len(destinations) + 1:
-                    # Add new destination
-                    city = input("Enter City Name: ").strip()
-                    airport_code = input("Enter Airport Code (e.g., JFK): ").strip().upper()
-                    try:
-                        cursor = conn.execute("INSERT INTO Destinations (city, airport_code) VALUES (?, ?)", 
-                                            (city, airport_code))
-                        conn.commit()
-                        dest_id = cursor.lastrowid
-                        print(f"[Success] New destination '{city}' ({airport_code}) added.")
-                        break
-                    except sqlite3.IntegrityError:
-                        print(f"[Error] Airport code '{airport_code}' already exists.")
-                        continue
-                else:
-                    print("[Error] Invalid selection. Please try again.")
-            except ValueError:
-                print("[Error] Please enter a valid number.")
-    else:
-        # No destinations exist, prompt to add one
-        print("No destinations available. You must add one first.")
-        city = input("Enter City Name: ").strip()
-        airport_code = input("Enter Airport Code (e.g., JFK): ").strip().upper()
-        try:
-            cursor = conn.execute("INSERT INTO Destinations (city, airport_code) VALUES (?, ?)", 
-                                (city, airport_code))
-            conn.commit()
-            dest_id = cursor.lastrowid
-            print(f"[Success] New destination '{city}' ({airport_code}) added.")
-        except sqlite3.IntegrityError:
-            print(f"[Error] Airport code '{airport_code}' already exists.")
-            conn.close()
-            return
+    dest_id = select_destination_id(conn, allow_add=True, allow_keep=False)
+    if dest_id is None:
+        conn.close()
+        return
     
     f_date = input("Enter Departure Date (YYYY-MM-DD): ")
     f_status = input("Enter Status (e.g., Scheduled): ")
@@ -254,104 +357,45 @@ def update_flight_information():
         print(f"{row[0]:<5} | {row[1]:<10} | {row[2]:<12} | {row[3]:<12} | {dest_city:<15}")
     
     # Get valid Flight ID
-    while True:
-        try:
-            f_id = int(input("\nEnter Flight ID to update (e.g. 110): "))
-        except ValueError:
-            print("[Error] Invalid Flight ID. Please enter a valid flight ID.")
-            continue
-        
-        # Verify flight exists
-        cursor = conn.execute("SELECT flight_num, departure_date, status, dest_id FROM Flights WHERE flight_id = ?", (f_id,))
-        flight = cursor.fetchone()
-        if not flight:
-            print("[Error] Flight ID not found. Please enter a valid Flight ID.")
-            continue
-        
-        break
+    f_id = prompt_existing_id(
+        conn,
+        "Flights",
+        "flight_id",
+        "\nEnter Flight ID to update (e.g. 110): ",
+        "[Error] Invalid Flight ID. Please enter a valid flight ID.",
+        "[Error] Flight ID not found. Please enter a valid Flight ID.",
+    )
+    cursor = conn.execute(
+        "SELECT flight_num, departure_date, status, dest_id FROM Flights WHERE flight_id = ?",
+        (f_id,),
+    )
+    flight = cursor.fetchone()
     
     # Get new status with validation rules
-    while True:
-        new_status = input("Enter new status (or leave blank to keep current): ").strip()
-        if new_status == "":
-            new_status = flight[2]  # Keep current status
-            break
-        elif new_status.isdigit():
-            print("[Error] Status should contain letters, not numbers. Please try again.")
-            continue
-        else:
-            break
+    new_status = prompt_status(
+        "Enter new status (or leave blank to keep current): ",
+        allow_blank=True,
+        default_value=flight[2],
+    )
     
     # Get new departure date with validation
-    while True:
-        new_date = input("Enter new departure date (YYYY-MM-DD, or leave blank to keep current): ").strip()
-        if new_date == "":
-            new_date = flight[1]  # Keep current date
-            break
-        elif not re.match(r'^\d{4}-\d{2}-\d{2}$', new_date):
-            print("[Error] Invalid date format. Please use YYYY-MM-DD (e.g., 2026-05-10)")
-            continue
-        else:
-            break
+    new_date = prompt_date(
+        "Enter new departure date (YYYY-MM-DD, or leave blank to keep current): ",
+        allow_blank=True,
+        default_value=flight[1],
+    )
     
     # Get new destination with validation
     print("\n--- Destination Update ---")
-    cursor = conn.execute("SELECT dest_id, city, airport_code FROM Destinations ORDER BY city")
-    destinations = cursor.fetchall()
-    
-    new_dest_id = flight[3]  # Default to current destination
-    
-    if destinations:
-        print("Available Destinations:")
-        for idx, dest in enumerate(destinations, 1):
-            print(f"{idx}. {dest[1]} ({dest[2]})")
-        print(f"{len(destinations) + 1}. Add a new destination")
-        print(f"{len(destinations) + 2}. Keep current destination")
-        
-        while True:
-            try:
-                dest_choice = input("\nSelect destination (or leave blank to keep current): ").strip()
-                if dest_choice == "":
-                    break  # Keep current destination
-                dest_choice = int(dest_choice)
-                if 1 <= dest_choice <= len(destinations):
-                    new_dest_id = destinations[dest_choice - 1][0]
-                    break
-                elif dest_choice == len(destinations) + 1:
-                    # Add new destination
-                    city = input("Enter City Name: ").strip()
-                    airport_code = input("Enter Airport Code (e.g., JFK): ").strip().upper()
-                    try:
-                        cursor = conn.execute("INSERT INTO Destinations (city, airport_code) VALUES (?, ?)", 
-                                            (city, airport_code))
-                        conn.commit()
-                        new_dest_id = cursor.lastrowid
-                        print(f"[Success] New destination '{city}' ({airport_code}) added.")
-                        break
-                    except sqlite3.IntegrityError:
-                        print(f"[Error] Airport code '{airport_code}' already exists.")
-                        continue
-                elif dest_choice == len(destinations) + 2:
-                    break  # Don't change destination
-                else:
-                    print("[Error] Invalid selection. Please enter a valid number.")
-            except ValueError:
-                print("[Error] Please enter a valid number.")
-    else:
-        # No destinations exist
-        print("No destinations available.")
-        add_new = input("Would you like to add a new destination? (yes/no): ").strip().lower()
-        if add_new == "yes":
-            city = input("Enter City Name: ").strip()
-            airport_code = input("Enter Airport Code (e.g., JFK): ").strip().upper()
-            try:
-                cursor = conn.execute("INSERT INTO Destinations (city, airport_code) VALUES (?, ?)", 
-                                    (city, airport_code))
-                conn.commit()
-                new_dest_id = cursor.lastrowid
-                print(f"[Success] New destination '{city}' ({airport_code}) added.")
-            except sqlite3.IntegrityError:
-                print(f"[Error] Airport code '{airport_code}' already exists.")
+    new_dest_id = select_destination_id(
+        conn,
+        allow_add=True,
+        allow_keep=True,
+        current_id=flight[3],
+        allow_blank=True,
+        prompt_text="\nSelect destination (or leave blank to keep current): ",
+        invalid_selection_message="[Error] Invalid selection. Please enter a valid number.",
+    )
 
     
     # Update the flight
@@ -420,34 +464,24 @@ def assign_pilot_to_flight():
         print(f"{row[0]:<5} | {row[1]:<20}")
     
     # Validate Flight ID exists
-    while True:
-        try:
-            f_id = int(input("\nEnter Flight ID: "))
-        except ValueError:
-            print("[Error] Invalid Flight ID. Please enter a valid flight ID.")
-            continue
-
-        cursor = conn.execute("SELECT 1 FROM Flights WHERE flight_id = ?", (f_id,))
-        if not cursor.fetchone():
-            print("[Error] Flight ID not found. Please enter a valid Flight ID.")
-            continue
-
-        break
+    f_id = prompt_existing_id(
+        conn,
+        "Flights",
+        "flight_id",
+        "\nEnter Flight ID (e.g. 111): ",
+        "[Error] Invalid Flight ID. Please enter a valid flight ID.",
+        "[Error] Flight ID not found. Please enter a valid Flight ID.",
+    )
 
     # Validate Pilot ID exists
-    while True:
-        try:
-            p_id = int(input("Enter Pilot ID to assign: "))
-        except ValueError:
-            print("[Error] Invalid Pilot ID. Please enter a valid pilot ID.")
-            continue
-
-        cursor = conn.execute("SELECT 1 FROM Pilots WHERE pilot_id = ?", (p_id,))
-        if not cursor.fetchone():
-            print("[Error] Pilot ID not found. Please enter a valid Pilot ID.")
-            continue
-
-        break
+    p_id = prompt_existing_id(
+        conn,
+        "Pilots",
+        "pilot_id",
+        "Enter Pilot ID to assign (e.g. 5): ",
+        "[Error] Invalid Pilot ID. Please enter a valid pilot ID.",
+        "[Error] Pilot ID not found. Please enter a valid Pilot ID.",
+    )
     
     conn.execute("UPDATE Flights SET pilot_id = ? WHERE flight_id = ?", (p_id, f_id))
     conn.commit()
@@ -459,7 +493,7 @@ def assign_pilot_to_flight():
     if result:
         print(f"\n[Success] Pilot {result[1]} assigned to flight {result[0]}!")
     else:
-        print("\n[Error] Could not assign pilot.")
+        print("\n[Error] Could not assign pilot. Plase try again.")
     
     conn.close()
 
@@ -479,19 +513,14 @@ def view_pilot_schedule():
     else:
         print("No pilots available.")
     
-    while True:
-        try:
-            p_id = int(input("\nEnter Pilot ID to view their assigned flights: "))
-        except ValueError:
-            print("[Error] Invalid Pilot ID. Please enter a valid pilot ID.")
-            continue
-
-        cursor = conn.execute("SELECT 1 FROM Pilots WHERE pilot_id = ?", (p_id,))
-        if not cursor.fetchone():
-            print("[Error] Pilot ID not found. Please enter a valid Pilot ID.")
-            continue
-
-        break
+    p_id = prompt_existing_id(
+        conn,
+        "Pilots",
+        "pilot_id",
+        "\nEnter Pilot ID to view their assigned flights: ",
+        "[Error] Invalid Pilot ID. Please enter a valid pilot ID.",
+        "[Error] Pilot ID not found. Please enter a valid Pilot ID.",
+    )
     
     query = """SELECT f.flight_num, f.departure_date, d.city 
                FROM Flights f 
@@ -557,19 +586,14 @@ def manage_destination_info():
                 for row in destinations:
                     print(f"{row[0]:<5} | {row[1]:<8} | {row[2]}")
                 
-                while True:
-                    try:
-                        d_id = int(input("\nEnter Destination ID to update: "))
-                    except ValueError:
-                        print("Invalid ID. Please enter a valid destination ID.")
-                        continue
-
-                    cursor = conn.execute("SELECT 1 FROM Destinations WHERE dest_id = ?", (d_id,))
-                    if not cursor.fetchone():
-                        print("[Error] Destination ID not found. Please enter a valid ID.")
-                        continue
-
-                    break
+                d_id = prompt_existing_id(
+                    conn,
+                    "Destinations",
+                    "dest_id",
+                    "\nEnter Destination ID to update (e.g. 10): ",
+                    "Invalid ID. Please enter a valid destination ID.",
+                    "[Error] Destination ID not found. Please enter a valid ID.",
+                )
                 
                 print("\nWhat would you like to update?")
                 print("1. City Name")
@@ -598,19 +622,14 @@ def manage_destination_info():
                 for row in destinations:
                     print(f"{row[0]:<5} | {row[1]:<8} | {row[2]}")
                 
-                while True:
-                    try:
-                        d_id = int(input("\nEnter Destination ID to delete: "))
-                    except ValueError:
-                        print("Invalid ID. Please enter a valid destination ID.")
-                        continue
-
-                    cursor = conn.execute("SELECT 1 FROM Destinations WHERE dest_id = ?", (d_id,))
-                    if not cursor.fetchone():
-                        print("[Error] Destination ID not found. Please enter a valid ID.")
-                        continue
-
-                    break
+                d_id = prompt_existing_id(
+                    conn,
+                    "Destinations",
+                    "dest_id",
+                    "\nEnter Destination ID to delete: ",
+                    "Invalid ID. Please enter a valid destination ID.",
+                    "[Error] Destination ID not found. Please enter a valid ID.",
+                )
                 
                 # Check if destination has flights
                 cursor = conn.execute("SELECT COUNT(*) FROM Flights WHERE dest_id = ?", (d_id,))
@@ -637,15 +656,15 @@ def manage_destination_info():
 
 def add_new_destination(conn):
     """Add a new destination and optionally assign a flight/pilot to it."""
-    new_city = input("\nEnter new city name: ")
-    new_code = input("Enter airport code: ")
-    
-    # Insert new destination
-    cursor = conn.execute("INSERT INTO Destinations (city, airport_code) VALUES (?, ?)", (new_city, new_code))
-    conn.commit()
-    new_dest_id = cursor.lastrowid
-    
-    print(f"\n[Success] New destination '{new_city}' ({new_code}) created with ID: {new_dest_id}")
+    created = create_destination(
+        conn,
+        allow_retry=True,
+        include_id=True,
+        city_prompt="\nEnter new city name (e.g. Dublin): ",
+        code_prompt="Enter airport code (e.g. DUB): ",
+        normalize_code=False,
+    )
+    new_dest_id, new_city, _ = created
     
     # Ask if user wants to assign flights/pilots
     assign_choice = input("\nWould you like to assign a flight to this destination? (yes/no): ")
@@ -664,19 +683,14 @@ def add_new_destination(conn):
                 for row in flights:
                     print(f"ID: {row[0]} | Flight: {row[1]} | Date: {row[2]} | Pilot ID: {row[3]}")
                 
-                while True:
-                    try:
-                        f_id = int(input("\nEnter Flight ID to assign: "))
-                    except ValueError:
-                        print("[Error] Invalid Flight ID. Please enter a valid flight ID.")
-                        continue
-
-                    cursor = conn.execute("SELECT 1 FROM Flights WHERE flight_id = ?", (f_id,))
-                    if not cursor.fetchone():
-                        print("[Error] Flight ID not found. Please enter a valid Flight ID.")
-                        continue
-
-                    break
+                f_id = prompt_existing_id(
+                    conn,
+                    "Flights",
+                    "flight_id",
+                    "\nEnter Flight ID to assign (e.g. 111): ",
+                    "[Error] Invalid Flight ID. Please enter a valid flight ID.",
+                    "[Error] Flight ID not found. Please enter a valid Flight ID.",
+                )
                 
                 # Show available pilots
                 cursor = conn.execute("SELECT pilot_id, name FROM Pilots ORDER BY pilot_id")
@@ -685,19 +699,14 @@ def add_new_destination(conn):
                 for row in pilots:
                     print(f"ID: {row[0]} | Name: {row[1]}")
                 
-                while True:
-                    try:
-                        p_id = int(input("\nEnter Pilot ID to assign: "))
-                    except ValueError:
-                        print("[Error] Invalid Pilot ID. Please enter a valid pilot ID.")
-                        continue
-
-                    cursor = conn.execute("SELECT 1 FROM Pilots WHERE pilot_id = ?", (p_id,))
-                    if not cursor.fetchone():
-                        print("[Error] Pilot ID not found. Please enter a valid Pilot ID.")
-                        continue
-
-                    break
+                p_id = prompt_existing_id(
+                    conn,
+                    "Pilots",
+                    "pilot_id",
+                    "\nEnter Pilot ID to assign (e.g. 5): ",
+                    "[Error] Invalid Pilot ID. Please enter a valid pilot ID.",
+                    "[Error] Pilot ID not found. Please enter a valid Pilot ID.",
+                )
                 
                 # Update flight with new destination and pilot
                 conn.execute("UPDATE Flights SET dest_id = ?, pilot_id = ? WHERE flight_id = ?", (new_dest_id, p_id, f_id))
@@ -711,35 +720,15 @@ def add_new_destination(conn):
             
             case '2':
                 # Create new flight
-                while True:
-                    flight_num = input("\nEnter flight number (e.g., FL-200): ").strip()
-                    if not re.match(r'^FL-\d{3}$', flight_num):
-                        print("[Error] Invalid flight number format. Must be FL-XXX (e.g., FL-200)")
-                        continue
+                flight_num = prompt_new_flight_number(
+                    conn,
+                    prompt_text="\nEnter flight number (e.g., FL-200): ",
+                    example="FL-200",
+                )
 
-                    cursor = conn.execute("SELECT 1 FROM Flights WHERE flight_num = ?", (flight_num,))
-                    if cursor.fetchone():
-                        print(f"[Error] Flight number '{flight_num}' already exists. Please use a different number.")
-                        continue
+                dep_date = prompt_date("Enter departure date (YYYY-MM-DD): ")
 
-                    break
-
-                while True:
-                    dep_date = input("Enter departure date (YYYY-MM-DD): ").strip()
-                    if not re.match(r'^\d{4}-\d{2}-\d{2}$', dep_date):
-                        print("[Error] Invalid date format. Please use YYYY-MM-DD (e.g., 2026-05-10)")
-                        continue
-                    break
-
-                while True:
-                    status = input("Enter status (Scheduled/On Time/Delayed/Cancelled): ").strip()
-                    if status == "":
-                        print("[Error] Status cannot be blank. Please try again.")
-                        continue
-                    if status.isdigit():
-                        print("[Error] Status should contain letters, not numbers. Please try again.")
-                        continue
-                    break
+                status = prompt_status("Enter status (Scheduled/On Time/Delayed/Cancelled): ")
                 
                 # Show available pilots
                 cursor = conn.execute("SELECT pilot_id, name FROM Pilots ORDER BY pilot_id")
@@ -748,19 +737,14 @@ def add_new_destination(conn):
                 for row in pilots:
                     print(f"ID: {row[0]} | Name: {row[1]}")
                 
-                while True:
-                    try:
-                        p_id = int(input("\nEnter Pilot ID to assign: "))
-                    except ValueError:
-                        print("[Error] Invalid Pilot ID. Please enter a valid pilot ID.")
-                        continue
-
-                    cursor = conn.execute("SELECT 1 FROM Pilots WHERE pilot_id = ?", (p_id,))
-                    if not cursor.fetchone():
-                        print("[Error] Pilot ID not found. Please enter a valid Pilot ID.")
-                        continue
-
-                    break
+                p_id = prompt_existing_id(
+                    conn,
+                    "Pilots",
+                    "pilot_id",
+                    "\nEnter Pilot ID to assign (e.g. 5): ",
+                    "[Error] Invalid Pilot ID. Please enter a valid pilot ID.",
+                    "[Error] Pilot ID not found. Please enter a valid Pilot ID.",
+                )
                 
                 # Insert new flight
                 conn.execute("INSERT INTO Flights (flight_num, departure_date, status, pilot_id, dest_id) VALUES (?, ?, ?, ?, ?)", 
@@ -771,7 +755,7 @@ def add_new_destination(conn):
 
 
 def view_summarised_data():
-    """Summarise data, such as number of flights per destination and per pilot."""
+    """Summarise data such as number of flights per destination or flights per pilot or status."""
     conn = get_connection()
     
     # Summary 1: Flights per destination
